@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import br.com.thomasribeiro.coursesapi.exceptions.CourseExistsException;
 import br.com.thomasribeiro.coursesapi.exceptions.CourseNotFoundException;
 import br.com.thomasribeiro.coursesapi.modules.entities.CourseEntity;
-import br.com.thomasribeiro.coursesapi.modules.entities.constants.Active;
 import br.com.thomasribeiro.coursesapi.modules.repositories.CourseRepository;
 
 @Service
@@ -21,10 +20,8 @@ public class CourseService {
     public CourseEntity insert(CourseEntity courseEntity) {
         this.courseRepository.findByName(courseEntity.getName())
                 .ifPresent((name) -> {
-                    throw new CourseExistsException();
+                    throw new CourseExistsException(courseEntity.getName());
                 });
-
-        courseEntity.setActive(Active.FALSE);
 
         return this.courseRepository.save(courseEntity);
     }
@@ -50,30 +47,19 @@ public class CourseService {
     @SuppressWarnings("null")
     public CourseEntity getById(UUID id) {
         CourseEntity course = this.courseRepository.findById(id)
-                .orElseThrow(CourseNotFoundException::new);
-
+                .orElseThrow(() -> new CourseNotFoundException(id));
         return course;
     }
 
     @SuppressWarnings("null")
     public void deleteById(UUID id) {
-        CourseEntity course = getById(id);
-        this.courseRepository.delete(course);
+        this.courseRepository.delete(getById(id));
     }
 
     public CourseEntity patch(UUID id, CourseEntity courseEntity) {
         CourseEntity course = getById(id);
-
-        course.setActive(Active.TRUE);
-
-        if (!courseEntity.getName().isEmpty())
-            course.setName(courseEntity.getName());
-        if (!courseEntity.getCategory().isEmpty())
-            course.setCategory(courseEntity.getCategory());
-        if (!(courseEntity.getUpdatedAt() == null))
-            course.setUpdatedAt(courseEntity.getUpdatedAt());
-
-        return course;
+        course.setActive(courseEntity.getActive());
+        return this.courseRepository.save(course);
     }
 
 }
